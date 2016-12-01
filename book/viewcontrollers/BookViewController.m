@@ -30,13 +30,23 @@
     if([self.conexaoUtil statusInternet]){
          [self.requestWS getBooks :@"resultGetBooks"];
     }else{
-        [self.uiUtils showAlertMessage:@"Connection" : @"No internet connection!"];
+         [self.uiUtils showAlertMessage:@"Connection" : @"No internet connection!"];
     }
    
     
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(resultGetBooks:)
                                                  name:@"resultGetBooks"
+                                               object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(resultAddBook:)
+                                                 name:@"resultAddBook"
+                                               object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(resultDeleteBook:)
+                                                 name:@"resultDeleteBook"
                                                object:nil];
     
     FBSDKLoginButton *loginButton = [[FBSDKLoginButton alloc] initWithFrame:CGRectMake(0, [[UIScreen mainScreen] bounds].size.height-50, [[UIScreen mainScreen] bounds].size.width, 50)];
@@ -52,8 +62,17 @@
 }
 
 - (IBAction)addBook:(id)sender{
-   [self.bookArray addObject:[self.uiTextFieldTitle text]];
-    [self.uiTableViewBook reloadData];
+    if([[[self.uiTextFieldTitle text] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] isEqualToString:@""]){
+         [self presentViewController:[self.uiUtils showAlertMessage:@"Alert" : @"Fill the field please!"] animated:YES completion:nil];
+    }else{
+         if([self.conexaoUtil statusInternet]){
+            Book *book = [[Book alloc]init];
+            [book setTitle:[self.uiTextFieldTitle text]];
+            [self.requestWS addBook: book :@"resultAddBook"];
+        }else{
+            [self presentViewController:[self.uiUtils showAlertMessage:@"Connection" : @"No internet connection!"] animated:YES completion:nil];
+        }
+    }
 }
 
 - (IBAction) cancelDeleteBook:(UIButton *)sender{
@@ -62,6 +81,10 @@
     [self.uiButtonCancel setHidden:YES];
     
     [self.uiTableViewBook setEditing:NO animated:YES];
+    
+    for(Book *book in self.bookArray){
+        [book setChecked:NO];
+    }
 }
 
 - (IBAction) confirmDeleteBook:(UIButton *)sender{
@@ -71,15 +94,13 @@
     
     [self.uiTableViewBook setEditing:NO animated:YES];
     
-
     NSMutableArray *bookToDelete = [NSMutableArray array];
     for(Book *book in self.bookArray){
         if([book checked] == YES)
-            [bookToDelete addObject:book];
+            [bookToDelete addObject:[book idBook]];
     }
     
-    [self.bookArray removeObjectsInArray:bookToDelete];
-
+   [self.requestWS deleteBook:bookToDelete :@"resultDeleteBook"];
         
    [self.uiTableViewBook reloadData];
 }
@@ -93,7 +114,6 @@
 }
 
 -(void)resultGetBooks:(NSNotification *) notification{
-    
     NSArray *arrayBooks = [notification object];
     
     __block NSOperationQueue *myQueue = [[NSOperationQueue alloc] init];
@@ -109,6 +129,40 @@
             }];
         }];
  }
+
+-(void)resultAddBook:(NSNotification *) notification{
+   NSDictionary *object = [notification object];
+    
+    __block NSOperationQueue *myQueue = [[NSOperationQueue alloc] init];
+    [myQueue addOperationWithBlock: ^ {
+        [[NSOperationQueue mainQueue] addOperationWithBlock: ^ {
+            Book *book = [[Book alloc] init];
+            [book setIdBook:[object objectForKey:@"id"]];
+            [book setTitle:[object objectForKey:@"title"]];
+            [self.bookArray addObject:book];
+            
+            [self.uiTableViewBook reloadData];
+        }];
+    }];
+}
+
+-(void)resultDeleteBook:(NSNotification *) notification{
+    
+    __block NSOperationQueue *myQueue = [[NSOperationQueue alloc] init];
+    [myQueue addOperationWithBlock: ^ {
+        [[NSOperationQueue mainQueue] addOperationWithBlock: ^ {
+            NSMutableArray *bookToDelete = [NSMutableArray array];
+            for(Book *book in self.bookArray){
+                if([book checked] == YES)
+                    [bookToDelete addObject:book];
+            }
+            
+            [self.bookArray removeObjectsInArray:bookToDelete];
+            [self.uiTableViewBook reloadData];
+            
+        }];
+    }];
+}
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     
