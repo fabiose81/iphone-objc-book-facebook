@@ -16,6 +16,9 @@
 @property(nonatomic,strong) UIUtils *uiUtils;
 
 - (void) getBooks : (NSString *)resultNotification;
+- (void) addBook : (Book *) book :(NSString *)resultNotification;
+- (void) deleteBook : (NSMutableArray *) books :(NSString *)resultNotification;
+
 - (NSURL *) getURL : (NSString *) action;
 
 @end

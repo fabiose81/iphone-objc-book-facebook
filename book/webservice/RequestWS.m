@@ -24,7 +24,7 @@
                     
                     if (error)
                     {
-                        [self.uiUtils showAlertMessage:@"Connection": @"No connection with server!"];
+                        NSLog(@"Error");
                     }
                     else
                     {
@@ -34,7 +34,7 @@
                             case 200:
                             {
                                 
-                                NSArray *arrayBooks = [[NSJSONSerialization JSONObjectWithData:[[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] dataUsingEncoding:NSUTF8StringEncoding] options:0 error:NULL] objectForKey:@"return"];
+                                NSArray *arrayBooks = [NSJSONSerialization JSONObjectWithData:[[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] dataUsingEncoding:NSUTF8StringEncoding] options:0 error:NULL];
                                 
                                  [[NSNotificationCenter defaultCenter] postNotificationName:resultNotification object:arrayBooks];
                                 
@@ -42,7 +42,7 @@
                             }
                                 
                             default:
-                                [self.uiUtils showAlertMessage:@"Connection": @"Erro"];
+                                 NSLog(@"Error");
                                 break;
                         }
                         
@@ -50,6 +50,110 @@
                     
                 }] resume];
     }
+
+
+
+- (void) addBook : (Book *) book :(NSString *)resultNotification{
+    
+    self.uiUtils = [[UIUtils alloc] init];
+    
+    NSError *error;
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[self getURL:@"addBook"]
+                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                       timeoutInterval:60.0];
+    
+    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    
+    [request setHTTPMethod:@"POST"];
+    
+    NSMutableDictionary *body = [[NSMutableDictionary alloc] init];
+    [body setValue:[book title]  forKey:@"title"];
+    
+    [request setHTTPBody:[NSJSONSerialization dataWithJSONObject:body options:0 error:&error]];
+    
+    
+    [[session dataTaskWithRequest:request
+                completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                    
+                    if (error)
+                    {
+                        NSLog(@"Error");
+                    }
+                    else
+                    {
+                        NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
+                        
+                        switch ([httpResponse statusCode]) {
+                            case 200:
+                            {
+                               NSDictionary *book = [NSJSONSerialization JSONObjectWithData:[[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] dataUsingEncoding:NSUTF8StringEncoding] options:0 error:NULL];
+                                
+                               [[NSNotificationCenter defaultCenter] postNotificationName:resultNotification object:book];
+                                
+                                break;
+                            }
+                                
+                            default:
+                                NSLog(@"Error");
+                                break;
+                        }
+                        
+                    }
+                    
+                }] resume];
+}
+
+- (void) deleteBook : (NSMutableArray *) books :(NSString *)resultNotification{
+    
+    self.uiUtils = [[UIUtils alloc] init];
+    
+    NSError *error;
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[self getURL:@"deleteBook"]
+                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                       timeoutInterval:60.0];
+    
+    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    
+    [request setHTTPMethod:@"POST"];
+    
+    NSMutableDictionary *body = [[NSMutableDictionary alloc] init];
+    [body setValue:books  forKey:@"id"];
+    
+    [request setHTTPBody:[NSJSONSerialization dataWithJSONObject:body options:0 error:&error]];
+    
+    
+    [[session dataTaskWithRequest:request
+                completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+                    
+                    if (error)
+                    {
+                        NSLog(@"Error");
+                    }
+                    else
+                    {
+                        NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
+                        
+                        switch ([httpResponse statusCode]) {
+                            case 200:
+                            {
+                                [[NSNotificationCenter defaultCenter] postNotificationName:resultNotification object:nil];
+                                
+                                break;
+                            }
+                                
+                            default:
+                                NSLog(@"Error");
+                                break;
+                        }
+                        
+                    }
+                    
+                }] resume];
+}
 
 - (NSURL *) getURL : (NSString *) action{
     
